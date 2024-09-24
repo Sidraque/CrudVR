@@ -60,7 +60,7 @@ AFRAME.registerComponent('gerenciador-crud-usuario', {
         this.atualizarLayout();
     },
 
-    atualizarUsuario: function (entidadeUsuario) {
+    /*atualizarUsuario: function (entidadeUsuario) {
         if (!entidadeUsuario) return;
         const componenteTexto = entidadeUsuario.getAttribute('text');
         if (!componenteTexto) return;
@@ -86,7 +86,7 @@ AFRAME.registerComponent('gerenciador-crud-usuario', {
                 zOffset: 0.01
             });
         }
-    },
+    },*/
 
     excluirUsuario: function (entidadeUsuario) {
         if (!entidadeUsuario) return;
