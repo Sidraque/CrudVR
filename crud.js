@@ -10,7 +10,8 @@ AFRAME.registerComponent('gerenciador-crud-usuario', {
             "Mariana Castro", "Bruno Cardoso", "Camila Nunes", "Thiago Ribeiro"
         ];
         this.atualizarLayout = this.atualizarLayout.bind(this);
-        window.addEventListener('resize', this.atualizarLayout);
+        this.lidarComSalvarEdicao = this.lidarComSalvarEdicao.bind(this);
+        this.lidarComFecharEdicao = this.lidarComFecharEdicao.bind(this);
     },
 
     lidarComMouseEnter: function (evento) {
@@ -36,16 +37,20 @@ AFRAME.registerComponent('gerenciador-crud-usuario', {
         const entidadeUsuario = document.createElement('a-entity');
         entidadeUsuario.setAttribute('geometry', 'primitive: plane; width: 1.3; height: 0.7');
         entidadeUsuario.setAttribute('material', 'color: #3498db; opacity: 0.9;');
-        entidadeUsuario.setAttribute('text', {
-            value: `Nome: ${nomeUsuario}\nEmail: ${email}\nIdade: ${idade}`,
-            align: 'left',
-            color: 'white',
-            width: 1.2,
-            wrapCount: 22,
-            baseline: 'top',
-            anchor: 'left',
-            zOffset: 0.01
-        });
+
+        // Adicionando o texto dentro da caixa azul
+        const texto = document.createElement('a-text');
+        texto.setAttribute('value', `Nome: ${nomeUsuario}\nEmail: ${email}\nIdade: ${idade}`);
+        texto.setAttribute('align', 'center');
+        texto.setAttribute('color', 'white');
+        texto.setAttribute('width', 1.2);
+        texto.setAttribute('wrapCount', 22);
+        texto.setAttribute('baseline', 'center');
+        texto.setAttribute('position', '0 0 0.01');
+        texto.setAttribute('scale', '1.5 1.5 1');
+
+        entidadeUsuario.appendChild(texto);
+
         entidadeUsuario.setAttribute('class', 'usuario');
         entidadeUsuario.setAttribute('position', '0 0 0.01');
 
@@ -56,37 +61,57 @@ AFRAME.registerComponent('gerenciador-crud-usuario', {
         entidadeUsuario.appendChild(botaoExcluir);
         this.usuarios.push(entidadeUsuario);
         document.querySelector('#listaUsuarios').appendChild(entidadeUsuario);
-        
+
         this.atualizarLayout();
     },
 
-    /*atualizarUsuario: function (entidadeUsuario) {
+    atualizarUsuario: function (entidadeUsuario) {
         if (!entidadeUsuario) return;
-        const componenteTexto = entidadeUsuario.getAttribute('text');
-        if (!componenteTexto) return;
+        const texto = entidadeUsuario.querySelector('a-text').getAttribute('value');
+        const [nome, email, idade] = texto.split('\n').map(linha => linha.split(': ')[1]);
 
-        const infoAtual = componenteTexto.value.split('\n');
-        const nomeAtual = infoAtual[0].split(': ')[1];
-        const emailAtual = infoAtual[1].split(': ')[1];
-        const idadeAtual = infoAtual[2].split(': ')[1];
+        const modal = document.querySelector('#modalEdicao');
+        modal.querySelector('#inputNome a-text').setAttribute('value', nome);
+        modal.querySelector('#inputEmail a-text').setAttribute('value', email);
+        modal.querySelector('#inputIdade a-text').setAttribute('value', idade);
 
-        const novoNome = prompt("Digite o novo nome do usuário:", nomeAtual);
-        const novoEmail = prompt("Digite o novo email:", emailAtual);
-        const novaIdade = prompt("Digite a nova idade:", idadeAtual);
+        modal.setAttribute('visible', true);
 
-        if (novoNome && novoEmail && novaIdade) {
-            entidadeUsuario.setAttribute('text', {
-                value: `Nome: ${novoNome}\nEmail: ${novoEmail}\nIdade: ${novaIdade}`,
-                align: 'left',
-                color: 'white',
-                width: 1.2,
-                wrapCount: 22,
-                baseline: 'top',
-                anchor: 'left',
-                zOffset: 0.01
-            });
+        // Armazena o usuário sendo editado
+        this.usuarioEditando = entidadeUsuario;
+
+        // Eventos de salvar e fechar
+        document.querySelector('#botaoSalvar').addEventListener('click', this.lidarComSalvarEdicao);
+        document.querySelector('#botaoFechar').addEventListener('click', this.lidarComFecharEdicao);
+    },
+
+    lidarComSalvarEdicao: function () {
+        const modal = document.querySelector('#modalEdicao');
+        const nome = modal.querySelector('#inputNome a-text').getAttribute('value');
+        const email = modal.querySelector('#inputEmail a-text').getAttribute('value');
+        const idade = modal.querySelector('#inputIdade a-text').getAttribute('value');
+
+        if (this.usuarioEditando) {
+            const texto = this.usuarioEditando.querySelector('a-text');
+            texto.setAttribute('value', `Nome: ${nome}\nEmail: ${email}\nIdade: ${idade}`);
         }
-    },*/
+
+        this.fecharModalEdicao();
+    },
+
+    lidarComFecharEdicao: function () {
+        this.fecharModalEdicao();
+    },
+
+    fecharModalEdicao: function () {
+        const modal = document.querySelector('#modalEdicao');
+        modal.setAttribute('visible', false);
+        this.usuarioEditando =         null;
+
+        // Remove os eventos de salvar e fechar para evitar múltiplas associações
+        document.querySelector('#botaoSalvar').removeEventListener('click', this.lidarComSalvarEdicao);
+        document.querySelector('#botaoFechar').removeEventListener('click', this.lidarComFecharEdicao);
+    },
 
     excluirUsuario: function (entidadeUsuario) {
         if (!entidadeUsuario) return;
@@ -117,20 +142,17 @@ AFRAME.registerComponent('gerenciador-crud-usuario', {
     },
 
     atualizarLayout: function () {
+        // Utilizando layout do A-Frame para reorganizar os elementos dos usuários
         const listaUsuarios = document.querySelector('#listaUsuarios');
-        const quantidadeUsuarios = this.usuarios.length;
-        let colunas = 2;
-        
-        if (quantidadeUsuarios > 6) {
-            colunas = 3;
-        }
-        if (quantidadeUsuarios > 12) {
-            colunas = 4;
-        }
+        listaUsuarios.removeAttribute('layout'); // Remover o layout para garantir que a posição manual funcione corretamente
 
-        listaUsuarios.setAttribute('layout', `type: grid; columns: ${colunas}; margin: 0.15; align: center`);
-        
-        const entidadeInterface = document.querySelector('#interface');
-        entidadeInterface.setAttribute('position', `0 ${1.0 - (quantidadeUsuarios * 0.15)} -1.5`);
+        // Atualizar as posições dos usuários manualmente, se necessário
+        this.usuarios.forEach((usuario, index) => {
+            const coluna = index % 4;
+            const linha = Math.floor(index / 4);
+            const posicaoX = coluna * 2; // Ajuste a distância entre colunas
+            const posicaoY = -linha * 1.5; 
+            usuario.setAttribute('position', `${posicaoX} ${posicaoY} 0`);
+        });
     }
 });
